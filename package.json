@@ -1,0 +1,37 @@
+{
+  "name": "survey-poc",
+  "version": "1.0.0",
+  "description": "Survey app for shopify",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "ts-node-dev src/index.ts"
+  },
+  "author": "Kalpesh mali",
+  "license": "ISC",
+  "dependencies": {
+    "@faker-js/faker": "^9.0.3",
+    "@shopify/shopify-api": "^11.5.0",
+    "@shopify/ui-extensions": "2024.10.0",
+    "@shopify/ui-extensions-react": "2024.10.0",
+    "@types/express": "^5.0.0",
+    "@types/mongoose": "^5.11.96",
+    "@types/ora": "^3.1.0",
+    "axios": "^1.7.7",
+    "chalk": "^5.3.0",
+    "commander": "^12.1.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "lucide-react": "^0.453.0",
+    "mongoose": "^8.7.2",
+    "nanospinner": "^1.1.0",
+    "ora": "^8.1.1",
+    "react": "^18.3.1",
+    "react-reconciler": "^0.29.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.6.3"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2"
+  }
+}

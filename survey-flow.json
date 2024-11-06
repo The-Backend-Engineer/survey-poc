@@ -1,0 +1,399 @@
+{
+    "info": {
+      "name": "Survey App API Tests",
+      "description": "Comprehensive test suite for the Survey Application API endpoints",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+      {
+        "key": "baseUrl",
+        "value": "http://localhost:3000",
+        "type": "string"
+      },
+      {
+        "key": "storeId",
+        "value": "",
+        "type": "string"
+      },
+      {
+        "key": "surveyId",
+        "value": "",
+        "type": "string"
+      },
+      {
+        "key": "accessToken",
+        "value": "",
+        "type": "string"
+      }
+    ],
+    "event": [
+      {
+        "listen": "prerequest",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "// Global Pre-request Script",
+            "pm.globals.set('timestamp', new Date().getTime());",
+            "pm.globals.set('randomEmail', `test.${pm.globals.get('timestamp')}@example.com`);",
+            "",
+            "// Helper function to generate random store data",
+            "function generateStoreData() {",
+            "    return {",
+            "        shopifyDomain: `store-${pm.globals.get('timestamp')}.myshopify.com`,",
+            "        accessToken: `access_${pm.globals.get('timestamp')}`,",
+            "        email: pm.globals.get('randomEmail')",
+            "    };",
+            "}",
+            "",
+            "// Helper function to generate random survey data",
+            "function generateSurveyData() {",
+            "    const questionTypes = ['multiple_choice', 'text', 'rating'];",
+            "    const questions = [];",
+            "    ",
+            "    for (let i = 0; i < 3; i++) {",
+            "        const type = questionTypes[Math.floor(Math.random() * questionTypes.length)];",
+            "        const question = {",
+            "            questionText: `Test Question ${i + 1}`,",
+            "            questionType: type,",
+            "            options: []",
+            "        };",
+            "        ",
+            "        if (type === 'multiple_choice') {",
+            "            question.options = ['Option 1', 'Option 2', 'Option 3'];",
+            "        }",
+            "        ",
+            "        questions.push(question);",
+            "    }",
+            "    ",
+            "    return {",
+            "        title: `Survey ${pm.globals.get('timestamp')}`,",
+            "        questions: questions",
+            "    };",
+            "}",
+            "",
+            "// Helper function to generate random survey response data",
+            "function generateSurveyResponseData(surveyData) {",
+            "    const responses = surveyData.questions.map((q, index) => {",
+            "        let answer;",
+            "        switch (q.questionType) {",
+            "            case 'multiple_choice':",
+            "                answer = q.options[Math.floor(Math.random() * q.options.length)];",
+            "                break;",
+            "            case 'text':",
+            "                answer = `Test answer for question ${index + 1}`;",
+            "                break;",
+            "            case 'rating':",
+            "                answer = Math.floor(Math.random() * 5) + 1;",
+            "                break;",
+            "        }",
+            "        return {",
+            "            questionId: String(index),",
+            "            answer: answer",
+            "        };",
+            "    });",
+            "    ",
+            "    return {",
+            "        responses: responses,",
+            "        customerEmail: pm.globals.get('randomEmail')",
+            "    };",
+            "}"
+          ]
+        }
+      }
+    ],
+    "item": [
+      {
+        "name": "Authentication",
+        "item": [
+          {
+            "name": "Initialize Auth",
+            "request": {
+              "method": "GET",
+              "url": {
+                "raw": "{{baseUrl}}/auth?shop={{shopDomain}}",
+                "host": ["{{baseUrl}}"],
+                "path": ["auth"],
+                "query": [
+                  {
+                    "key": "shop",
+                    "value": "{{shopDomain}}"
+                  }
+                ]
+              }
+            },
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "exec": [
+                    "pm.test('Status code is 302 (redirect)', function() {",
+                    "    pm.response.to.have.status(302);",
+                    "});",
+                    "",
+                    "pm.test('Redirect URL contains expected Shopify parameters', function() {",
+                    "    const redirectUrl = pm.response.headers.get('Location');",
+                    "    pm.expect(redirectUrl).to.include('myshopify.com/admin/oauth/authorize');",
+                    "    pm.expect(redirectUrl).to.include('client_id=');",
+                    "    pm.expect(redirectUrl).to.include('scope=');",
+                    "});"
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Stores",
+        "item": [
+          {
+            "name": "Create Store",
+            "request": {
+              "method": "POST",
+              "url": "{{baseUrl}}/api/stores",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{{$randomStoreData}}"
+              }
+            },
+            "event": [
+              {
+                "listen": "prerequest",
+                "script": {
+                  "exec": [
+                    "pm.variables.set('randomStoreData', JSON.stringify(generateStoreData()));"
+                  ]
+                }
+              },
+              {
+                "listen": "test",
+                "script": {
+                  "exec": [
+                    "pm.test('Status code is 201', function() {",
+                    "    pm.response.to.have.status(201);",
+                    "});",
+                    "",
+                    "pm.test('Response has required store properties', function() {",
+                    "    const responseData = pm.response.json();",
+                    "    pm.expect(responseData).to.have.property('_id');",
+                    "    pm.expect(responseData).to.have.property('shopifyDomain');",
+                    "    pm.expect(responseData).to.have.property('accessToken');",
+                    "    ",
+                    "    // Store ID for later use",
+                    "    pm.environment.set('storeId', responseData._id);",
+                    "});"
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Surveys",
+        "item": [
+          {
+            "name": "Create Survey",
+            "request": {
+              "method": "POST",
+              "url": "{{baseUrl}}/api/surveys",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{{$randomSurveyData}}"
+              }
+            },
+            "event": [
+              {
+                "listen": "prerequest",
+                "script": {
+                  "exec": [
+                    "const surveyData = generateSurveyData();",
+                    "surveyData.storeId = pm.environment.get('storeId');",
+                    "pm.variables.set('randomSurveyData', JSON.stringify(surveyData));",
+                    "pm.environment.set('lastSurveyData', JSON.stringify(surveyData));"
+                  ]
+                }
+              },
+              {
+                "listen": "test",
+                "script": {
+                  "exec": [
+                    "pm.test('Status code is 201', function() {",
+                    "    pm.response.to.have.status(201);",
+                    "});",
+                    "",
+                    "pm.test('Response has required survey properties', function() {",
+                    "    const responseData = pm.response.json();",
+                    "    pm.expect(responseData).to.have.property('_id');",
+                    "    pm.expect(responseData).to.have.property('title');",
+                    "    pm.expect(responseData).to.have.property('questions');",
+                    "    pm.expect(responseData.questions).to.be.an('array');",
+                    "    ",
+                    "    // Store survey ID for later use",
+                    "    pm.environment.set('surveyId', responseData._id);",
+                    "});"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "name": "Get Surveys",
+            "request": {
+              "method": "GET",
+              "url": {
+                "raw": "{{baseUrl}}/api/surveys?storeId={{storeId}}",
+                "host": ["{{baseUrl}}"],
+                "path": ["api", "surveys"],
+                "query": [
+                  {
+                    "key": "storeId",
+                    "value": "{{storeId}}"
+                  }
+                ]
+              }
+            },
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "exec": [
+                    "pm.test('Status code is 200', function() {",
+                    "    pm.response.to.have.status(200);",
+                    "});",
+                    "",
+                    "pm.test('Response is an array of surveys', function() {",
+                    "    const responseData = pm.response.json();",
+                    "    pm.expect(responseData).to.be.an('array');",
+                    "    if (responseData.length > 0) {",
+                    "        pm.expect(responseData[0]).to.have.property('_id');",
+                    "        pm.expect(responseData[0]).to.have.property('title');",
+                    "        pm.expect(responseData[0]).to.have.property('questions');",
+                    "    }",
+                    "});"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "name": "Get Survey Block",
+            "request": {
+              "method": "GET",
+              "url": "{{baseUrl}}/api/surveys/{{surveyId}}/block"
+            },
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "exec": [
+                    "pm.test('Status code is 200', function() {",
+                    "    pm.response.to.have.status(200);",
+                    "});",
+                    "",
+                    "pm.test('Response contains survey block data', function() {",
+                    "    const responseData = pm.response.json();",
+                    "    pm.expect(responseData).to.have.property('containerId');",
+                    "    pm.expect(responseData).to.have.property('code');",
+                    "    pm.expect(responseData.code).to.include('survey-form');",
+                    "});"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "name": "Publish Survey",
+            "request": {
+              "method": "POST",
+              "url": "{{baseUrl}}/api/surveys/{{surveyId}}/publish"
+            },
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "exec": [
+                    "pm.test('Status code is 200', function() {",
+                    "    pm.response.to.have.status(200);",
+                    "});",
+                    "",
+                    "pm.test('Response contains script tag data', function() {",
+                    "    const responseData = pm.response.json();",
+                    "    pm.expect(responseData).to.have.property('message');",
+                    "    pm.expect(responseData).to.have.property('scriptTag');",
+                    "    pm.expect(responseData.scriptTag).to.have.property('id');",
+                    "});"
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Survey Responses",
+        "item": [
+          {
+            "name": "Submit Survey Response",
+            "request": {
+              "method": "POST",
+              "url": "{{baseUrl}}/api/survey-responses",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{{$randomResponseData}}"
+              }
+            },
+            "event": [
+              {
+                "listen": "prerequest",
+                "script": {
+                  "exec": [
+                    "const lastSurveyData = JSON.parse(pm.environment.get('lastSurveyData'));",
+                    "const responseData = generateSurveyResponseData(lastSurveyData);",
+                    "responseData.surveyId = pm.environment.get('surveyId');",
+                    "pm.variables.set('randomResponseData', JSON.stringify(responseData));"
+                  ]
+                }
+              },
+              {
+                "listen": "test",
+                "script": {
+                  "exec": [
+                    "pm.test('Status code is 201', function() {",
+                    "    pm.response.to.have.status(201);",
+                    "});",
+                    "",
+                    "pm.test('Response has required properties', function() {",
+                    "    const responseData = pm.response.json();",
+                    "    pm.expect(responseData).to.have.property('_id');",
+                    "    pm.expect(responseData).to.have.property('surveyId');",
+                    "    pm.expect(responseData).to.have.property('responses');",
+                    "    pm.expect(responseData.responses).to.be.an('array');",
+                    "});"
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }

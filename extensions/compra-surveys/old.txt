@@ -1,0 +1,304 @@
+import {
+  reactExtension,
+  View,
+  BlockStack,
+  Text,
+  Button,
+  InlineStack,
+  Choice,
+  ChoiceList,
+  Banner,
+  Spinner,
+  TextField,
+  Select,
+  Divider,
+} from '@shopify/ui-extensions-react/checkout';
+import { useCallback, useState, useEffect } from 'react';
+
+const QuestionType = {
+  SINGLE_CHOICE: 'single_choice',
+  MULTIPLE_CHOICE: 'multiple_choice',
+  TEXT: 'text',
+  SELECT: 'select',
+  IMAGE_RADIO: 'image_radio',
+};
+
+const QUESTIONS = [
+  {
+    id: 1,
+    question: "How satisfied are you with your purchase?",
+    type: QuestionType.SINGLE_CHOICE,
+    options: ["Very Satisfied", "Satisfied", "Neutral", "Dissatisfied", "Very Dissatisfied"],
+  },
+  {
+    id: 2,
+    question: "What did you like most about the product?",
+    type: QuestionType.TEXT,
+    placeholder: "Type your answer here...",
+  },
+  {
+    id: 3,
+    question: "Would you recommend this product to others?",
+    type: QuestionType.SINGLE_CHOICE,
+    options: ["Yes", "No"],
+  },
+  {
+    id: 4,
+    question: "What improvements would you suggest?",
+    type: QuestionType.TEXT,
+    placeholder: "Type your suggestions here...",
+  },
+  {
+    id: 5,
+    question: "How did you hear about us?",
+    type: QuestionType.SELECT,
+    options: ["Social Media", "Friend", "Online Search", "Advertisement", "Other"],
+  },
+  {
+    id: 6,
+    question: "Please choose your preferred contact method.",
+    type: QuestionType.MULTIPLE_CHOICE,
+    options: ["Email", "Phone", "Text", "None"],
+  },
+  {
+    id: 7,
+    question: "Select your favorite feature of the product.",
+    type: QuestionType.IMAGE_RADIO,
+    options: [
+      { label: "Quality", imageUrl: "https://via.placeholder.com/80" },
+      { label: "Price", imageUrl: "https://via.placeholder.com/80" },
+      { label: "Design", imageUrl: "https://via.placeholder.com/80" },
+    ],
+  },
+];
+
+const Footer = () => (
+  <View padding="base" background="surface" border="base" cornerRadius="medium">
+    <BlockStack spacing="tight" alignment="center">
+      <Text emphasis="bold">Thank you for choosing Compra!</Text>
+      <Text appearance="subdued">Your feedback helps us make Compra better every day.</Text>
+      <Divider />
+      <Text appearance="subdued" size="small">
+        © {new Date().getFullYear()} Compra. All rights reserved.
+      </Text>
+    </BlockStack>
+  </View>
+);
+
+const InitialLoadingView = () => (
+  <View padding="base">
+    <BlockStack spacing="loose" alignment="center">
+      <Spinner size="large" accessibilityLabel="Loading survey" />
+      <Text emphasis="bold">Loading Survey</Text>
+      <Text appearance="subdued">Please wait while we prepare your feedback form...</Text>
+    </BlockStack>
+  </View>
+);
+
+const ThankYouView = () => (
+  <View padding="base">
+    <BlockStack spacing="loose">
+      <Banner status="success">
+        <BlockStack spacing="tight">
+          <Text emphasis="bold">Thank you for completing the survey!</Text>
+          <Text>Your feedback helps us improve our services.</Text>
+        </BlockStack>
+      </Banner>
+      <Text appearance="subdued">You can now close this window.</Text>
+    </BlockStack>
+  </View>
+);
+
+const ErrorView = ({ error, onRetry }) => (
+  <View padding="base">
+    <Banner status="critical">
+      <BlockStack spacing="tight">
+        <Text emphasis="bold">Something went wrong</Text>
+        <Text>{error || 'Unable to load survey. Please try again later.'}</Text>
+        {onRetry && (
+          <Button onPress={onRetry}>Retry</Button>
+        )}
+      </BlockStack>
+    </Banner>
+  </View>
+);
+
+const QuestionRenderer = ({ question, value, onChange, onAutoAdvance }) => {
+  const handleSingleChoiceChange = useCallback((newValue) => {
+    if (newValue.length > 0) {
+      onChange(newValue[0]);
+      onAutoAdvance?.();
+    }
+  }, [onChange, onAutoAdvance]);
+
+  const handleMultipleChoiceChange = useCallback((newValue) => {
+    onChange(newValue);
+  }, [onChange]);
+
+  const handleSelectChange = useCallback((newValue) => {
+    if (newValue) {
+      onChange(newValue);
+      onAutoAdvance?.();
+    }
+  }, [onChange, onAutoAdvance]);
+
+  const handleTextChange = useCallback((newValue) => {
+    onChange(newValue);
+  }, [onChange]);
+
+  const handleImageRadioChange = useCallback((newValue) => {
+    if (newValue.length > 0) {
+      onChange(newValue[0]);
+      onAutoAdvance?.();
+    }
+  }, [onChange, onAutoAdvance]);
+
+  switch (question.type) {
+    case QuestionType.SINGLE_CHOICE:
+      return (
+        <ChoiceList
+          name={`question-${question.id}`}
+          value={value ? [value] : []}
+          onChange={handleSingleChoiceChange}
+        >
+          {question.options.map((option) => (
+            <Choice key={option} id={option}>{option}</Choice>
+          ))}
+        </ChoiceList>
+      );
+
+    case QuestionType.MULTIPLE_CHOICE:
+      return (
+        <ChoiceList
+          name={`question-${question.id}`}
+          value={value || []}
+          onChange={handleMultipleChoiceChange}
+          allowMultiple
+        >
+          {question.options.map((option) => (
+            <Choice key={option} id={option}>{option}</Choice>
+          ))}
+        </ChoiceList>
+      );
+
+    case QuestionType.SELECT:
+      return (
+        <Select
+          label=""
+          value={value || ''}
+          onChange={handleSelectChange}
+          options={question.options.map(opt => ({ value: opt, label: opt }))}
+        />
+      );
+
+    case QuestionType.TEXT:
+      return (
+        <TextField
+          value={value || ''}
+          onChange={handleTextChange}
+          multiline
+          maxLength={question.maxLength}
+          placeholder={question.placeholder}
+        />
+      );
+
+    case QuestionType.IMAGE_RADIO:
+      return (
+        <ChoiceList
+          name={`question-${question.id}`}
+          value={value ? [value] : []}
+          onChange={handleImageRadioChange}
+        >
+          {question.options.map((option) => (
+            <Choice key={option.label} id={option.label}>
+              <InlineStack spacing="tight" alignment="center">
+                <img src={option.imageUrl} alt={option.label} width="80" height="80" style={{ borderRadius: '8px' }} />
+                <Text>{option.label}</Text>
+              </InlineStack>
+            </Choice>
+          ))}
+        </ChoiceList>
+      );
+
+    default:
+      return <ErrorView error={`Unsupported question type: ${question.type}`} />;
+  }
+};
+
+const ProgressBar = ({ current, total }) => {
+  const progress = ((current + 1) / total * 100).toFixed(0);
+  
+  return (
+    <Banner status="info">
+      <BlockStack spacing="tight">
+        <Text>Progress: {progress}%</Text>
+        <View
+          border="base"
+          cornerRadius="full"
+          padding="none"
+          blockAlignment="stretch"
+        >
+          <View
+            padding="extraTight"
+            cornerRadius="full"
+            background="interactive"
+            inlineSize={`${progress}%`}
+          />
+        </View>
+      </BlockStack>
+    </Banner>
+  );
+};
+
+const Survey = () => {
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [answers, setAnswers] = useState({});
+  const [isComplete, setIsComplete] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    // Simulating an initial loading period
+    const timer = setTimeout(() => {
+      setIsInitialLoading(false);
+    }, 1500);
+    
+    return () => clearTimeout(timer); // Cleanup the timer on unmount
+  }, []);
+
+  const handleNext = () => {
+    if (currentIndex < QUESTIONS.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    } else {
+      setIsComplete(true);
+    }
+  };
+
+  if (isInitialLoading) return <InitialLoadingView />;
+  if (isComplete) return <ThankYouView />;
+  if (error) return <ErrorView error={error} onRetry={() => setError(null)} />;
+
+  return (
+    <View padding="base">
+      <ProgressBar current={currentIndex} total={QUESTIONS.length} />
+      <Text emphasis="bold" size="large">{QUESTIONS[currentIndex].question}</Text>
+      <QuestionRenderer
+        question={QUESTIONS[currentIndex]}
+        value={answers[QUESTIONS[currentIndex].id]}
+        onChange={(value) => setAnswers((prev) => ({ ...prev, [QUESTIONS[currentIndex].id]: value }))}
+        onAutoAdvance={handleNext}
+      />
+      <Button onPress={handleNext} primary>
+        {currentIndex === QUESTIONS.length - 1 ? 'Submit' : 'Next'}
+      </Button>
+      <Footer />
+    </View>
+  );
+};
+
+export default reactExtension(Survey);
+
+
+// Challenges to figure out 
+
+// We want customerId and orderId when thank you page loads in our extension  
