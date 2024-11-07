@@ -122,6 +122,7 @@ async function seedSurveys() {
         storeId: store._id,
         title: `${template.type}: ${faker.commerce.productName()} Survey`,
         questions: generateQuestions(template),
+        totalOrderAmount:faker.helpers.arrayElement([200, 400, 600, 800, 1000]),
         active: faker.datatype.boolean({ probability: 0.8 }),
         createdAt: faker.date.past({ years: 1 }),
         targetAudience: {

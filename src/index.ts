@@ -156,6 +156,7 @@ const SurveySchema = new mongoose.Schema({
     options: [String],
     required: { type: Boolean, default: false }
   }],
+  totalOrderAmount:{type: Number,default:0.000},
   active: { type: Boolean, default: false },
   priority: { 
     type: Number, 
@@ -588,18 +589,22 @@ app.delete('/api/surveys/:surveyId', async (req, res) => {
 // Get Survey
 app.get('/api/survey', async (req, res) => {
   try {
-    const { customerId, orderId } = req.query;
+    const {  totalOrderAmount } = req.query;
     console.log("Im here... in get surveys")
 
-    // if (!customerId || !orderId) {
-    //    res.status(400).json({ error: 'Customer ID and Order ID are required' });
-    //    return;
-    // }
+    if (!totalOrderAmount) {
+       res.status(400).json({ error: 'Total Order  Amount are required' });
+       return;
+    }
 
     // Find an active survey that matches targeting criteria
     const survey = await Survey.findOne({
-      status: 'active',
-      active: true
+      totalOrderAmount: {
+        $lte: Number(totalOrderAmount),
+        $gte: Number(totalOrderAmount) >= 800 ? 800 : 
+              Number(totalOrderAmount) >= 600 ? 600 :
+              Number(totalOrderAmount) >= 400 ? 400 : 0
+      }
     }).sort({ priority: -1 });
 
     if (!survey) {

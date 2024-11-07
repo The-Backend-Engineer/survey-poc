@@ -4,7 +4,10 @@ import { createSpinner } from 'nanospinner';
 
 config(); // Load environment variables
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/your_database';
+
+
+
+const MONGODB_URI =  'mongodb+srv://kalpesh:vDMw0dDJS0T5diNp@survey-ins-1.9tczk.mongodb.net/survey-app';
 
 async function clearDatabase() {
   const connectSpinner = createSpinner('Connecting to database...').start();

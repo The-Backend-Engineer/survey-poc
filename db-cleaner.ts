@@ -88,8 +88,10 @@ class DatabaseCleaner {
     this.log('Connecting to MongoDB...', 'info');
     
     try {
-      await mongoose.connect(process.env.MONGODB_URI!);
-      this.log('Connected to MongoDB', 'success');
+      mongoose.connect('mongodb+srv://kalpesh:vDMw0dDJS0T5diNp@survey-ins-1.9tczk.mongodb.net/survey-app')
+      .then(() => console.log('Connected to MongoDB'))
+      .catch((err) => console.error('MongoDB connection error:', err));
+          this.log('Connected to MongoDB', 'success');
     } catch (error) {
       this.log('Failed to connect to MongoDB', 'error');
       throw error;
